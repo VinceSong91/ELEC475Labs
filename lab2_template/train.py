@@ -98,19 +98,44 @@ def main():
                         help="Validation metric to monitor for early stopping: 'val_loss', 'val_acc', or 'val_f1'")
     parser.add_argument("--patience", type=int, default=5, help="Early stopping patience (epochs without improvement)")
     parser.add_argument("--min-delta", type=float, default=1e-4, help="Minimum delta threshold to qualify as improvement")
+    parser.add_argument("--device", type=str, default="auto",
+                        choices=["auto", "cpu", "mps", "cuda"],
+                        help="Training device: auto, cpu, mps, or cuda")
     args = parser.parse_args()
 
     # Enforce global reproducibility across all RNG subsystems
     seed_everything(args.seed, deterministic=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Select training device
+    if args.device == "auto":
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+    else:
+        device = torch.device(args.device)
+
+    if device.type == "mps" and not torch.backends.mps.is_available():
+        raise RuntimeError("MPS is not available on this Mac.")
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available.")
+
+    if device.type == "cuda":
+        device_name = torch.cuda.get_device_name(0)
+    elif device.type == "mps":
+        device_name = "Apple Metal GPU (MPS)"
+    else:
+        device_name = "CPU"
+
     print("=" * 88)
     print("ELEC 475: Lab 2 Training Engine")
-    print(f"Device        : {device} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
+    print(f"Device        : {device} ({device_name})")
     print(f"Model         : {args.model.upper()} (Norm: {args.norm.upper() if args.model == 'alexnet' else 'N/A'})")
     print(f"Dataset       : {args.dataset.upper()} (Augmentation: {not args.no_augment})")
     print(f"Hyperparams   : Epochs={args.epochs}, BatchSize={args.batch_size}, LR={args.lr}, Seed={args.seed}")
-    print(f"Early Stopping: {'Enabled (Monitor: ' + args.early_stopping_metric + ', Patience: ' + str(args.patience) + ')' if args.early_stopping else 'Disabled'}")
+    print(f"Early Stopping: {'Enabled' if args.early_stopping else 'Disabled'}")
     print("=" * 88)
 
     # 1. Load Data
