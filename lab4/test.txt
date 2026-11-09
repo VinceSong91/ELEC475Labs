@@ -1,0 +1,5 @@
+# Run from the lab4 folder after training completes.
+python test_kd.py
+python -m models.custom_student
+python evaluate.py -b 4 --workers 0
+# Results: plots/comparison.csv and plots/compare.png

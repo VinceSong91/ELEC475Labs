@@ -1,0 +1,8 @@
+# Run from the lab4 folder after installing dependencies and preparing VOC 2012 under ./data.
+# Use the same batch, LR and convergence settings for all three baseline experiments.
+python test_kd.py
+python train.py --model original --kd none -e 100 -b 4 --workers 0
+python train.py --model original --kd response -e 100 -b 4 --workers 0
+python train.py --model original --kd feature -e 100 -b 4 --workers 0
+# Custom lightweight student (response KD)
+python train.py --model custom --kd response -e 100 -b 4 --workers 0
